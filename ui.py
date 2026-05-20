@@ -192,7 +192,7 @@ if selected_view == "🏆 Strategy Leaderboard":
     st.markdown('<div class="design-input-grid">', unsafe_allow_html=True)
     st.markdown("<p style='font-weight:700; color:#06B6D4; letter-spacing:0.5px; margin-bottom:15px;'>🏅 RUNNING HIGH SCORE LEADERBOARD SYSTEM</p>", unsafe_allow_html=True)
     try:
-        lead_response = requests.get("http://127.0.0.1:8000/leaderboard-metrics", timeout=5)
+        lead_response = requests.get("https://veltrixcode-backend.onrender.com/leaderboard-metrics", timeout=5)
         if lead_response.status_code == 200:
             st.dataframe(pd.DataFrame(lead_response.json().get("leaderboard", [])), use_container_width=True)
         else: st.error("Database connection fault.")
@@ -239,7 +239,7 @@ if run_clicked:
     else:
         with st.spinner("⚡ Compiling algorithm matrix..."):
             try:
-                response = requests.post("http://127.0.0.1:8000/backtest", json={"user_strategy": user_strategy, "ticker": ticker}, timeout=60)
+                response = requests.post("https://veltrixcode-backend.onrender.com/backtest", json={"user_strategy": user_strategy, "ticker": ticker}, timeout=60)
                 if response.status_code == 200:
                     data = response.json()["performance_report"]
                     st.session_state.current_live_metrics = data
