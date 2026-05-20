@@ -103,7 +103,7 @@ if selected_view == "Core Engine Dashboard":
     with col_in_1:
         target_ticker = st.text_input("📈 Target Asset Ticker", value="AAPL")
     with col_in_2:
-        date_range = st.selectbox("📅 Evaluation Frame", ["365D Backtest (Full)", "180D Mid-Frame", "90D Short-Term"])
+        date_range = st.selectbox("📅 Evaluation Frame", ["365D", "180D", "90D"])
     with col_in_3:
         user_strategy = st.text_area("🔮 Strategy Evaluation Logic (Plain English)", value="Buy when price crosses above the 30 SMA.")
         
