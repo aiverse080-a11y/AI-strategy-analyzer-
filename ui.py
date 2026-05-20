@@ -232,10 +232,8 @@ st.markdown('</div>', unsafe_allow_html=True)
 
 if run_clicked:
     if not user_strategy.strip(): st.warning("Please verify strategy inputs.")
-    elif not st.session_state.is_logged_in:
-        st.session_state.is_logged_in = True
-        st.session_state.user_email = "developer@veltrixcode.ai"
-        st.rerun()
+  elif not st.session_state.is_logged_in:
+            st.error("🔒 Access Denied. Please log in from the authentication panel first.")
     else:
         with st.spinner("⚡ Compiling algorithm matrix..."):
             try:
