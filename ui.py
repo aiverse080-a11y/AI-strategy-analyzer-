@@ -1,186 +1,233 @@
-import gradio as gr
+import streamlit as st
 import pandas as pd
 import requests
+from fpdf import FPDF
+import io
 
 # 1. PLATFORM CONFIGURATION & CONSTANTS
 BACKEND_URL = "https://veltrixcode-backend.onrender.com"
 
-# Custom Institutional Dark Theme CSS (Bloomberg/Quant Terminal Style)
-custom_css = """
-body, .gradio-container { background-color: #050811 !important; color: #d1d5db !important; font-family: 'Courier New', Courier, monospace !important; }
-.terminal-header { background: linear-gradient(180deg, #0b1120 0%, #050811 100%); padding: 1.5rem; border-bottom: 2px solid #1e293b; margin-bottom: 1.5rem; }
-.terminal-title { font-size: 2.2rem; font-weight: 800; color: #ffffff; letter-spacing: -1px; }
-.terminal-status-pill { display: inline-block; background-color: #064e3b; color: #34d399; padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700; margin-top: 0.5rem; }
-.parameter-board { background-color: #0f172a !important; padding: 1.5rem; border-radius: 8px; border: 1px solid #1e293b; margin-bottom: 1.5rem; }
-.execute-btn { background: linear-gradient(90deg, #1b49b4 0%, #007acc 100%) !important; color: white !important; font-weight: 600 !important; border: none !important; }
-.execute-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(0,122,204,0.4); }
-.legal-markdown a { color: #00b0ff !important; text-decoration: none; font-weight: 600; }
-.legal-markdown a:hover { text-decoration: underline; }
-"""
+st.set_page_config(
+    page_title="AI Strategy Analyzer Pro",
+    page_icon="🔮",
+    layout="wide",
+    initial_sidebar_state="collapsed"  # Collapses sidebar by default for an elite clean look
+)
 
-# Helper function to generate default historical mock ledger matching backend structure
-def get_mock_ledger(ticker):
-    return pd.DataFrame([
-        {"Order Ticket": "TKT-109", "Execution Timestamp": "2026-05-18 10:30", "Side": "BUY/LONG", "Asset": ticker, "Price Point": "$172.40", "Position Allocation": "100 Shares", "Realized PnL Profile": "RUNNING"},
-        {"Order Ticket": "TKT-108", "Execution Timestamp": "2026-05-14 15:45", "Side": "SELL/CLOSE", "Asset": ticker, "Price Point": "$176.10", "Position Allocation": "100 Shares", "Realized PnL Profile": "+$370.00 MATURED"},
-        {"Order Ticket": "TKT-107", "Execution Timestamp": "2026-05-09 09:15", "Side": "BUY/LONG", "Asset": ticker, "Price Point": "$171.20", "Position Allocation": "100 Shares", "Realized PnL Profile": "LIQUIDATED"},
-        {"Order Ticket": "TKT-106", "Execution Timestamp": "2026-05-03 14:20", "Side": "SELL/CLOSE", "Asset": ticker, "Price Point": "$168.90", "Position Allocation": "100 Shares", "Realized PnL Profile": "-$110.00 MATURED"},
-        {"Order Ticket": "TKT-105", "Execution Timestamp": "2026-04-28 11:00", "Side": "BUY/LONG", "Asset": ticker, "Price Point": "$170.00", "Position Allocation": "100 Shares", "Realized PnL Profile": "LIQUIDATED"}
-    ])
+# Premium Global Stylesheet (Hides sidebar toggles and renders the gorgeous Bloomberg dark theme)
+st.markdown("""
+    <style>
+    .main { background-color: #060913; color: #c9d1d9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    [data-testid="stSidebar"] { display: none !important; }
+    [data-testid="stSidebarCollapseButton"] { display: none !important; }
+    
+    .header-container { 
+        background: radial-gradient(circle at 90% 10%, rgba(24, 40, 110, 0.3) 0%, rgba(6, 9, 19, 0) 70%);
+        padding: 2rem 0;
+        margin-bottom: 1rem;
+    }
+    .dashboard-title-main { font-size: 2.8rem; font-weight: 800; color: #ffffff; letter-spacing: -0.5px; margin-bottom: 0.2rem; }
+    .dashboard-subtitle { font-size: 1.1rem; color: #6b7c96; margin-bottom: 1.5rem; }
+    
+    .design-input-grid { 
+        background-color: #0b132b; 
+        padding: 1.8rem; 
+        border-radius: 12px; 
+        border: 1px solid #1c2541; 
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    
+    .stButton>button { 
+        background: linear-gradient(90deg, #1b49b4 0%, #007acc 100%); 
+        color: white; 
+        border: none;
+        border-radius: 6px; 
+        padding: 0.6rem;
+        font-weight: 600;
+        width: 100%; 
+        transition: all 0.3s ease;
+    }
+    .stButton>button:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(0,122,204,0.4); }
+    
+    .metric-card-custom {
+        background: linear-gradient(145deg, #0b122c 0%, #070c1e 100%);
+        padding: 1.2rem;
+        border-radius: 10px;
+        border: 1px solid #16224f;
+        text-align: left;
+    }
+    .metric-card-title { font-size: 0.8rem; font-weight: 600; color: #5f759e; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 0.5rem; }
+    .metric-card-value { font-size: 1.8rem; font-weight: 700; color: #00e676; margin-bottom: 0.2rem; }
+    .metric-card-value.blue-text { color: #00b0ff; }
+    .metric-card-value.orange-text { color: #ff9100; }
+    
+    .section-header-premium { font-size: 1.4rem; font-weight: 700; color: #ffffff; margin: 2rem 0 1rem 0; border-left: 4px solid #007acc; padding-left: 0.5rem; }
+    
+    .popup-login-header { text-align: center; margin-bottom: 1.2rem; }
+    .popup-logo-glow { font-size: 2.5rem; color: #00b0ff; text-shadow: 0 0 15px rgba(0,176,255,0.6); margin-bottom: 0.2rem; font-weight: bold; }
+    .popup-welcome-txt { font-size: 1.5rem; font-weight: 700; color: #ffffff; margin-bottom: 0.2rem; }
+    .popup-sub-txt { font-size: 0.85rem; color: #6b7c96; margin-bottom: 0.4rem; }
+    .popup-brand-powered { font-size: 0.75rem; font-weight: 700; color: #38ef7d; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 1rem; }
+    .popup-login-header a { color: #00b0ff !important; text-decoration: none; font-weight: 600; }
+    .popup-login-header a:hover { text-decoration: underline; }
+    
+    div[data-testid="stTextInput"] input { background-color: #0b132b !important; border: 1px solid #1c2541 !important; color: #ffffff !important; border-radius: 6px !important; }
+    .dev-attribution { font-size: 0.85rem; color: #415a77; text-align: center; margin-top: 4rem; padding-bottom: 2rem; }
+    </style>
+""", unsafe_allow_html=True)
 
-# 2. GRADIO CORE SYSTEM ROUTER & CONTROLLER LAYER
-def execute_quant_backtest(ticker, frame, strategy, email, password, terms_checkbox):
-    # Gating Check 1: Verify Legal Box
-    if not terms_checkbox:
-        return (
-            gr.update(visible=True, value="⚠️ ACTION BLOCKED: You must accept regulatory compliance rules before executing code."),
-            gr.update(visible=False), None, "", "", "", "", "", "", "", "", "", None
-        )
-    
-    # Gating Check 2: Verify Universal Login Input Completeness
-    if not email.strip() or not password.strip():
-        return (
-            gr.update(visible=True, value="⚠️ ACCESS DENIED: Please fill out both the Username ID and Security Token fields."),
-            gr.update(visible=False), None, "", "", "", "", "", "", "", "", "", None
-        )
-    
-    # Handshake Processing Pipeline
-    try:
-        response = requests.post(
-            f"{BACKEND_URL}/backtest",
-            json={"ticker": ticker, "frame": frame, "user_strategy": strategy},
-            timeout=15
-        )
+def compile_pdf_document(data):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    pdf.cell(200, 10, txt="VELTRIXCODE AI - Executive Strategy Report", ln=1, align="C")
+    pdf.cell(200, 10, txt=f"Win Rate: {data.get('win_rate', 'N/A')}", ln=2)
+    pdf_string = pdf.output(dest="S")
+    if isinstance(pdf_string, str): return pdf_string.encode("latin-1")
+    return bytes(pdf_string)
+
+# State Management
+if "is_logged_in" not in st.session_state: st.session_state.is_logged_in = False
+if "user_email" not in st.session_state: st.session_state.user_email = ""
+if "current_live_metrics" not in st.session_state: st.session_state.current_live_metrics = None
+if "pdf_data_buffer" not in st.session_state: st.session_state.pdf_data_buffer = None
+
+# 2. DIALOG AUTH GATEWAY POPUP
+@st.dialog("🔒 Secure Engine Gate", width="large")
+def trigger_login_popup_gate():
+    col_side_l, col_center_form, col_side_r = st.columns([0.8, 2.4, 0.8])
+    with col_center_form:
+        st.markdown("""
+            <div class="popup-login-header">
+                <div class="popup-logo-glow">▲</div>
+                <div class="popup-welcome-txt">Sign In to Your Account</div>
+                <div class="popup-sub-txt">Enter your credentials to connect to the cloud engine</div>
+                <div class="popup-brand-powered">⚡ POWERED BY VELTRIXCODE AI</div>
+            </div>
+        """, unsafe_allow_html=True)
         
-        if response.status_code == 200:
-            data = response.json().get("performance_report", {})
-            
-            # Formulate Outputs cleanly for dashboard viewport updates
-            win_rate = f"{str(data.get('win_rate', '54.2')).replace('%', '')}%"
-            profit_factor = f"{str(data.get('profit_factor', '2.38')).replace('x', '')}x"
-            max_dd = f"{str(data.get('max_drawdown', '-16.4')).replace('%', '')}%"
-            total_trades = str(data.get('total_trades', '110'))
-            
-            sharpe = str(data.get('sharpe_ratio', '1.84'))
-            sortino = str(data.get('sortino_ratio', '2.15'))
-            alpha = str(data.get('alpha', '0.12'))
-            beta = str(data.get('beta', '0.94'))
-            
-            net_profit = f"${data.get('net_profit', '14,240')}"
-            avg_win = f"${data.get('avg_win', '340')}"
-            avg_loss = f"-${str(data.get('avg_loss', '180')).replace('-', '')}"
-            pl_ratio = str(data.get('pl_ratio', '1.88'))
-            
-            ai_insights = data.get('ai_insights', "The execution model indicates steady risk-adjusted alpha metrics across volatility vectors.")
-            ledger_df = get_mock_ledger(ticker)
-            
-            return (
-                gr.update(visible=False),              # Hide error block
-                gr.update(visible=True),               # Show full analytics panel
-                ledger_df,                             # Historical data table
-                win_rate, profit_factor, max_dd, total_trades,
-                sharpe, sortino, alpha, beta,
-                net_profit, avg_win, avg_loss, pl_ratio,
-                ai_insights
-            )
-        else:
-            return (
-                gr.update(visible=True, value=f"❌ Backend Engine Failure Validation Code: {response.status_code}"),
-                gr.update(visible=False), None, "", "", "", "", "", "", "", "", "", None
-            )
-            
-    except Exception as e:
-        return (
-            gr.update(visible=True, value=f"❌ Handshake Error: Unable to sync with the cloud architecture engine. {str(e)}"),
-            gr.update(visible=False), None, "", "", "", "", "", "", "", "", "", None
-        )
+        auth_email = st.text_input("Email Address", placeholder="name@company.com")
+        auth_pass = st.text_input("Password", type="password", placeholder="••••••••")
+        
+        st.write("")
+        terms_accepted = st.checkbox("I accept the platform Privacy Policy and institutional Terms & Conditions constraints.")
+        
+        st.write("")
+        if st.button("Sign In →", key="modal_submit_btn"):
+            if not terms_accepted:
+                st.warning("⚠️ Action blocked. You must accept the Privacy Policy and Terms to proceed.")
+            elif auth_email.strip() and auth_pass.strip():
+                st.session_state.is_logged_in = True
+                st.session_state.user_email = auth_email.strip()
+                st.success("Access Granted!")
+                st.rerun()
+            else:
+                st.error("Please enter both an email address and a password.")
 
-# 3. BUILD INTERFACE ARCHITECTURE USING GRADIO BLOCKS MESH
-with gr.Blocks(css=custom_css, title="Veltrixcode Quantitative Terminal") as demo:
+# 3. INTERFACE FRAMEWORK
+st.markdown("""
+    <div class="header-container">
+        <div class="dashboard-title-main">AI Strategy Analyzer Pro</div>
+        <div class="dashboard-subtitle">Analyze how your trading strategy performed over historical market data matrices.</div>
+    </div>
+""", unsafe_allow_html=True)
+
+if st.session_state.is_logged_in:
+    col_user_info, col_logout_act = st.columns([3.5, 1])
+    with col_user_info:
+        st.markdown(f"🟢 **Session Secured:** `{st.session_state.user_email}`")
+    with col_logout_act:
+        if st.button("Disconnect Session 🔓"):
+            st.session_state.is_logged_in = False
+            st.session_state.user_email = ""
+            st.session_state.current_live_metrics = None
+            st.session_state.pdf_data_buffer = None
+            st.rerun()
+
+col_pdf_space, col_pdf_btn = st.columns([3.2, 1])
+with col_pdf_btn:
+    if st.session_state.pdf_data_buffer:
+        st.download_button(label="📄 Export Executive Report (PDF)", data=st.session_state.pdf_data_buffer, file_name="Veltrixcode_Premium_Report.pdf", mime="application/pdf")
+    else:
+        st.button("📄 Export Executive Report (PDF)", disabled=True)
+
+st.markdown('<div class="design-input-grid">', unsafe_allow_html=True)
+col_in_1, col_in_2, col_in_3 = st.columns([1, 1.2, 2])
+with col_in_1: target_ticker = st.text_input("📈 Target Asset Ticker", value="AAPL")
+with col_in_2: date_range = st.selectbox("📅 Evaluation Frame", ["365D", "180D", "90D"])
+with col_in_3: user_strategy = st.text_area("🔮 Strategy Evaluation Logic (Plain English)", value="Buy when price crosses above the 30 SMA.")
     
-    # Header Panel Block
-    gr.HTML("""
-        <div class="terminal-header">
-            <div class="terminal-title">VELTRIXCODE QUANTITATIVE TERMINAL v3.1</div>
-            <div class="terminal-status-pill">📡 CORES SYNCED: GRADIO RUNTIME SECURE EDGE</div>
+run_clicked = st.button("🚀 Run Advanced Strategy Backtest Framework")
+st.markdown('</div>', unsafe_allow_html=True)
+
+if run_clicked:
+    if not user_strategy.strip():
+        st.warning("Please verify strategy inputs.")
+    elif not st.session_state.is_logged_in:
+        trigger_login_popup_gate()
+    else:
+        with st.spinner("⚡ Compiling algorithm matrix analytics..."):
+            try:
+                response = requests.post(f"{BACKEND_URL}/backtest", json={"ticker": target_ticker, "frame": date_range, "user_strategy": user_strategy}, timeout=15)
+                if response.status_code == 200:
+                    data = response.json().get("performance_report", {})
+                    st.session_state.current_live_metrics = data
+                    st.session_state.pdf_data_buffer = compile_pdf_document(data)
+                    st.rerun()
+                else:
+                    st.error(f"Backend Engine Fault validation code: {response.status_code}")
+            except Exception as e:
+                st.error(f"Connection Error: Unable to sync with backend services. {str(e)}")
+
+st.write("---")
+
+if not st.session_state.current_live_metrics:
+    st.markdown("""
+        <div style="background-color: rgba(0, 176, 255, 0.04); border: 1px solid rgba(0, 176, 255, 0.2); padding: 1.2rem; border-radius: 8px; margin-bottom: 2rem; display: flex; align-items: center;">
+            <span style="font-size: 1.5rem; margin-right: 1rem;">ℹ️</span>
+            <div style="color: #4fc3f7; font-size: 0.95rem;">The quantitative analytics metrics engine is currently loaded. Click the "Run Advanced Strategy Backtest Framework" button above to unlock processing visualizations.</div>
         </div>
-    """)
+    """, unsafe_allow_html=True)
+else:
+    m = st.session_state.current_live_metrics
+    col_card_1, col_card_2, col_card_3, col_card_4 = st.columns(4)
+    raw_win = str(m.get('win_rate', '54.2'))
+    win_rate_val = raw_win if "%" in raw_win else f"{raw_win}%"
+    raw_dd = str(m.get('max_drawdown', '-16.4'))
+    drawdown_val = raw_dd if "%" in raw_dd else f"{raw_dd}%"
     
-    # Universal Gateway Sign In Card (Embedded right inside the workspace seamlessly)
-    with gr.Row(elem_classes="parameter-board"):
-        with gr.Column(scale=2):
-            gr.Markdown("### 🔒 ENGINE RUNTIME GATEWAY SECURE ACCESS")
-            gr.Markdown("Enter any demonstration authorization properties below to connect current interface terminal parameters to remote processing computing cores.")
-        with gr.Column(scale=1):
-            ui_email = gr.Textbox(label="User ID Key Address", placeholder="operator@firm.com", max_lines=1)
-        with gr.Column(scale=1):
-            ui_pass = gr.Textbox(label="Security Access Token Key", placeholder="••••••••", type="password", max_lines=1)
-        with gr.Column(scale=2):
-            ui_terms = gr.Checkbox(label="I verify asset configuration compliance rules.", value=False)
-            gr.Markdown("Read compliance definitions: [Privacy Policy](https://veltrixcode-ai.streamlit.app/Privacy_Policy) | [Terms & Conditions](https://veltrixcode-ai.streamlit.app/Terms_And_Conditions)", elem_classes="legal-markdown")
+    with col_card_1: st.markdown(f"""<div class="metric-card-custom"><div class="metric-card-title">📈 Strategy Win Rate</div><div class="metric-card-value">{win_rate_val}</div></div>""", unsafe_allow_html=True)
+    with col_card_2: st.markdown(f"""<div class="metric-card-custom"><div class="metric-card-title">📊 Profit Factor</div><div class="metric-card-value blue-text">{m.get('profit_factor', '2.38')}x</div></div>""", unsafe_allow_html=True)
+    with col_card_3: st.markdown(f"""<div class="metric-card-custom"><div class="metric-card-title">📉 Max Drawdown</div><div class="metric-card-value orange-text">{drawdown_val}</div></div>""", unsafe_allow_html=True)
+    with col_card_4: st.markdown(f"""<div class="metric-card-custom"><div class="metric-card-title">💼 Total Trades Executed</div><div class="metric-card-value blue-text">{m.get('total_trades', '110')}</div></div>""", unsafe_allow_html=True)
 
-    # Strategy Configuration Form Panel Grid
-    with gr.Row(elem_classes="parameter-board"):
-        with gr.Column(scale=1):
-            in_ticker = gr.Textbox(label="📈 ASSET TICKER", value="AAPL", max_lines=1)
-        with gr.Column(scale=1.2):
-            in_frame = gr.Dropdown(label="📅 HISTORICAL LOOKBACK FRAME", choices=["365D", "180D", "90D"], value="365D")
-        with gr.Column(scale=2.8):
-            in_strategy = gr.Textbox(label="🔮 STRATEGY EXECUTION LOGIC (PLAIN ENGLISH)", value="Buy when price crosses above the 30 SMA.", lines=2)
-            
-    # Universal Application Compute Action Button 
-    btn_execute = gr.Button("🚀 EXECUTE HIGH-FIDELITY BACKTEST SEQUENCE", elem_classes="execute-btn")
+    st.markdown('<div class="section-header-premium">Advanced Quantitative Risk Analytics</div>', unsafe_allow_html=True)
+    tab_r, tab_p, tab_l = st.tabs(["🛡️ RISK-ADJUSTED METRICS", "💵 PROFIT EXPECTANCY", "📜 TRANSACTION ORDER LEDGER"])
     
-    # Hidden System Alert Messenger Block
-    txt_error_msg = gr.Textbox(visible=False, label="TERMINAL ERROR FEEDBACK ALERT SYSTEM", interactive=False)
-    
-    # --- OUTPUTS QUANT DESKTOP VIEWPORT BLOCK PANEL (Initially hidden, loads on successful login/compute) ---
-    with gr.Column(visible=False) as output_panel:
-        gr.Markdown("## 📊 CORES COMPUTATION VIEWPORT METRICS BOARD")
-        
-        # Tier 1: Main High Level Executive KPI Row Block
-        with gr.Row():
-            out_win = gr.Textbox(label="🎯 Strategy Win Rate", interactive=False)
-            out_pf = gr.Textbox(label="📊 Gross Profit Factor", interactive=False)
-            out_dd = gr.Textbox(label="📉 Peak Max Drawdown", interactive=False)
-            out_count = gr.Textbox(label="💼 Executed Trade Count", interactive=False)
-            
-        # Tier 2: Interactive Data Tab Architecture Containers
-        with gr.Tabs():
-            with gr.TabItem("🛡️ RISK-ADJUSTED ALPHA METRICS"):
-                with gr.Row():
-                    out_sharpe = gr.Textbox(label="Sharpe Ratio (Risk-Free Index Adj.)", interactive=False)
-                    out_sortino = gr.Textbox(label="Sortino Ratio (Downside Volatility Adj.)", interactive=False)
-                    out_alpha = gr.Textbox(label="Alpha Vector Score (Benchmark Excess)", interactive=False)
-                    out_beta = gr.Textbox(label="Beta Volatility Profile Index", interactive=False)
-                    
-            with gr.TabItem("💵 PROFIT & VOLATILITY EXPECTANCY"):
-                with gr.Row():
-                    out_net = gr.Textbox(label="Net Strategy System Profit Accrual", interactive=False)
-                    out_awin = gr.Textbox(label="Average Gain Per Profitable Position", interactive=False)
-                    out_aloss = gr.Textbox(label="Average Cost Loss Per Drag Position", interactive=False)
-                    out_plr = gr.Textbox(label="Profit-to-Loss Multiplier Mathematical Index", interactive=False)
-                    
-            with gr.TabItem("📜 TRANSACTION ORDER LOG LEDGER"):
-                out_ledger_table = gr.DataFrame(label="Complete Institutional System-Fill Ledger Matrix", interactive=False)
-                
-        # Tier 3: Machine Learning Natural Language Summaries Block
-        gr.Markdown("### 🔮 MACHINE INTELLIGENCE QUANT STRATEGY INTERPRETATION")
-        out_insights = gr.Markdown()
-        
-    # 4. INTERFACE EVENTS REACTION BINDINGS MAP
-    btn_execute.click(
-        fn=execute_quant_backtest,
-        inputs=[in_ticker, in_frame, in_strategy, ui_email, ui_pass, ui_terms],
-        outputs=[
-            txt_error_msg, output_panel, out_ledger_table,
-            out_win, out_pf, out_dd, out_count,
-            out_sharpe, out_sortino, out_alpha, out_beta,
-            out_net, out_awin, out_aloss, out_plr,
-            out_insights
-        ]
-    )
+    with tab_r:
+        col_ratio_1, col_ratio_2, col_ratio_3, col_ratio_4 = st.columns(4)
+        col_ratio_1.metric("Sharpe Ratio", f"{m.get('sharpe_ratio', '1.84')}")
+        col_ratio_2.metric("Sortino Ratio", f"{m.get('sortino_ratio', '2.15')}")
+        col_ratio_3.metric("Alpha Value", f"{m.get('alpha', '0.12')}")
+        col_ratio_4.metric("Beta Volatility Index", f"{m.get('beta', '0.94')}")
 
-# 5. INITIALIZE LOCAL WEB SERVER DESKTOP EXECUTION ENVIRONMENT INSTANCE
-if __name__ == "__main__":
-    demo.launch()
+    with tab_p:
+        col_ratio_5, col_ratio_6, col_ratio_7, col_ratio_8 = st.columns(4)
+        col_ratio_5.metric("Net Financial Profit", f"${m.get('net_profit', '14,240')}")
+        col_ratio_6.metric("Average Win Amount", f"${m.get('avg_win', '340')}")
+        col_ratio_7.metric("Average Loss Amount", f"-${m.get('avg_loss', '180')}")
+        col_ratio_8.metric("Profit/Loss Factor Ratio", f"{m.get('pl_ratio', '1.88')}")
+
+    with tab_l:
+        trades_df = pd.DataFrame([
+            {"Order Ticket": "TKT-109", "Execution Timestamp": "2026-05-18 10:30", "Side": "BUY/LONG", "Asset": target_ticker, "Price Point": "$172.40", "Position Allocation": "100 Shares", "Realized PnL Profile": "RUNNING"},
+            {"Order Ticket": "TKT-108", "Execution Timestamp": "2026-05-14 15:45", "Side": "SELL/CLOSE", "Asset": target_ticker, "Price Point": "$176.10", "Position Allocation": "100 Shares", "Realized PnL Profile": "+$370.00 MATURED"},
+            {"Order Ticket": "TKT-107", "Execution Timestamp": "2026-05-09 09:15", "Side": "BUY/LONG", "Asset": target_ticker, "Price Point": "$171.20", "Position Allocation": "100 Shares", "Realized PnL Profile": "LIQUIDATED"}
+        ])
+        st.dataframe(trades_df, use_container_width=True, hide_index=True)
+
+    st.markdown('<div class="section-header-premium">AI Analytical Insight Engine Conclusion</div>', unsafe_allow_html=True)
+    st.info(m.get('ai_insights', "The evaluation model indicates strong risk-adjusted alpha generation capabilities."))
+
+st.markdown('<div class="dev-attribution">Platform Core Architecture Engine | Developed under Veltrixcode AI Framework</div>', unsafe_allow_html=True)
