@@ -11,7 +11,7 @@ st.set_page_config(
     page_title="AI Strategy Analyzer Pro",
     page_icon="🔮",
     layout="wide",
-    initial_sidebar_state="collapsed"  # Force sidebar to completely hide on load
+    initial_sidebar_state="collapsed"
 )
 
 # Premium Global Stylesheet (Hides sidebar toggle button and centers everything perfectly)
@@ -129,20 +129,23 @@ def trigger_login_popup_gate():
         auth_pass = st.text_input("Password", type="password", placeholder="••••••••")
         
         st.write("")
-        # ⚖️ LEGAL COMPLIANCE: Clickable links rendered directly next to the selection checkbox field
         terms_accepted = st.checkbox("I accept the platform [Privacy Policy](https://veltrixcode-ai.streamlit.app/Privacy_Policy) and institutional [Terms & Conditions](https://veltrixcode-ai.streamlit.app/Terms_And_Conditions) constraints.")
         
         st.write("")
         if st.button("Sign In →", key="modal_submit_btn"):
+            clean_email = auth_email.strip()
+            clean_pass = auth_pass.strip()
+            
             if not terms_accepted:
                 st.warning("⚠️ Action blocked. You must accept the Privacy Policy and Terms to proceed.")
-            elif auth_email.strip() and len(auth_pass) > 4:
+            # Universal Gate: Accepts any text inputs instantly without errors
+            elif clean_email and clean_pass:
                 st.session_state.is_logged_in = True
-                st.session_state.user_email = auth_email.strip()
+                st.session_state.user_email = clean_email
                 st.success("Access Granted!")
                 st.rerun()
             else:
-                st.error("Invalid access credentials token.")
+                st.error("Please enter both an email address and a password.")
                 
         st.markdown('<div style="text-align:center; color:#5f759e; margin: 0.3rem 0; font-size:0.8rem;">OR</div>', unsafe_allow_html=True)
         
@@ -151,7 +154,7 @@ def trigger_login_popup_gate():
                 st.warning("⚠️ Action blocked. You must accept the Privacy Policy and Terms to proceed.")
             else:
                 st.session_state.is_logged_in = True
-                st.session_state.user_email = "sso.user@veltrixcode.ai"
+                st.session_state.user_email = "guest.developer@veltrixcode.ai"
                 st.rerun()
 
 # 4. MAIN DASHBOARD FRAME INTERFACE
@@ -162,7 +165,7 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# Account session logout row display handler (Now sits elegantly right above the controls layout)
+# Account session logout row display handler
 if st.session_state.is_logged_in:
     col_user_info, col_logout_act = st.columns([3.5, 1])
     with col_user_info:
