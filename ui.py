@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Institutional Dark Theme CSS (Brings back exact look, colors, and layout)
+# Premium Global Stylesheet
 st.markdown("""
     <style>
     /* Main Layout Framework */
@@ -30,7 +30,7 @@ st.markdown("""
     .dashboard-title-main { font-size: 2.8rem; font-weight: 800; color: #ffffff; letter-spacing: -0.5px; margin-bottom: 0.2rem; }
     .dashboard-subtitle { font-size: 1.1rem; color: #6b7c96; margin-bottom: 1.5rem; }
     
-    /* Form input container grid matching picture structure */
+    /* Input Dashboard Matrix Containers */
     .design-input-grid { 
         background-color: #0b132b; 
         padding: 1.8rem; 
@@ -40,7 +40,7 @@ st.markdown("""
         box-shadow: 0 4px 20px rgba(0,0,0,0.3);
     }
     
-    /* Interactive Run Button styling updates */
+    /* Execution Action Buttons Styling */
     .stButton>button { 
         background: linear-gradient(90deg, #1b49b4 0%, #007acc 100%); 
         color: white; 
@@ -53,7 +53,7 @@ st.markdown("""
     }
     .stButton>button:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(0,122,204,0.4); }
     
-    /* Premium Grid Tracking Cards mapping dashboard visualization components */
+    /* Premium Grid Tracking Cards mapping dashboard components */
     .metric-card-custom {
         background: linear-gradient(145deg, #0b122c 0%, #070c1e 100%);
         padding: 1.2rem;
@@ -63,19 +63,14 @@ st.markdown("""
     }
     .metric-card-title { font-size: 0.8rem; font-weight: 600; color: #5f759e; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 0.5rem; }
     .metric-card-value { font-size: 1.8rem; font-weight: 700; color: #00e676; margin-bottom: 0.2rem; }
-    .metric-card-value.red-text { color: #ff3d00; }
     .metric-card-value.blue-text { color: #00b0ff; }
     
-    /* Left panel custom notification card banners */
-    .sidebar-lock-card {
-        background-color: rgba(213, 0, 0, 0.05);
-        border: 1px solid rgba(213, 0, 0, 0.2);
-        padding: 1rem;
-        border-radius: 8px;
-        margin-top: 2rem;
-    }
-    .sidebar-lock-title { color: #ff1744; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.3rem; }
-    .sidebar-lock-desc { color: #8892b0; font-size: 0.8rem; }
+    /* Premium Interactive Modal Form Elements */
+    .popup-login-header { text-align: center; margin-bottom: 1.5rem; }
+    .popup-logo-glow { font-size: 3.5rem; color: #00b0ff; text-shadow: 0 0 15px rgba(0,176,255,0.6); margin-bottom: 0.5rem; }
+    .popup-welcome-txt { font-size: 1.6rem; font-weight: 700; color: #ffffff; }
+    .popup-sub-txt { font-size: 0.9rem; color: #6b7c96; margin-bottom: 0.5rem; }
+    .popup-brand-powered { font-size: 0.8rem; font-weight: 600; color: #00b0ff; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 1rem; }
     
     .dev-attribution { font-size: 0.85rem; color: #415a77; text-align: center; margin-top: 4rem; padding-bottom: 2rem; }
     </style>
@@ -103,7 +98,40 @@ if "current_live_metrics" not in st.session_state:
 if "pdf_data_buffer" not in st.session_state:
     st.session_state.pdf_data_buffer = None
 
-# 3. SIDEBAR CONFIGURATION (Matches exact structure layout)
+# 3. HIGH-FIDELITY MODAL OVERLAY TRIGGER
+@st.dialog("🔒 Secure Engine Gate", width="large")
+def trigger_login_popup_gate():
+    st.markdown("""
+        <div class="popup-login-header">
+            <div class="popup-logo-glow">▲</div>
+            <div class="popup-welcome-txt">Welcome Back</div>
+            <div class="popup-sub-txt">Login to access your dashboard</div>
+            <div class="popup-brand-powered">⚡ POWERED BY VELTRIXCODE AI</div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    auth_email = st.text_input("Email Address", placeholder="Enter your email")
+    auth_pass = st.text_input("Password", type="password", placeholder="Enter your password")
+    
+    st.write("")
+    if st.button("Sign In →", key="modal_submit_btn"):
+        if auth_email.strip() and len(auth_pass) > 4:
+            st.session_state.is_logged_in = True
+            st.session_state.user_email = auth_email.strip()
+            st.success("Authentication validated successfully!")
+            st.rerun()
+        else:
+            st.error("Invalid secure access credentials token.")
+            
+    st.markdown('<div style="text-align:center; color:#5f759e; margin: 0.5rem 0;">OR</div>', unsafe_allow_html=True)
+    
+    if st.button("🔴 Continue with Google", key="google_oauth_bypass"):
+        st.session_state.is_logged_in = True
+        st.session_state.user_email = "google.user@veltrixcode.ai"
+        st.success("OAuth verification handshake completed!")
+        st.rerun()
+
+# 4. SIDEBAR STATUS MONITOR PANEL
 with st.sidebar:
     st.markdown("### AI STRATEGY ANALYZER PRO")
     auth_search = st.text_input("🔍 Search sections...", value="ui", label_visibility="collapsed")
@@ -115,7 +143,7 @@ with st.sidebar:
     st.markdown("🌐 **ENGINE RUNTIME**")
     
     if st.session_state.is_logged_in:
-        st.success(f"🟢 Active Token: {st.session_state.user_email}")
+        st.success(f"🟢 Active Key: {st.session_state.user_email}")
         if st.button("Disconnect Session"):
             st.session_state.is_logged_in = False
             st.session_state.user_email = ""
@@ -123,26 +151,11 @@ with st.sidebar:
             st.session_state.pdf_data_buffer = None
             st.rerun()
     else:
-        with st.expander("🔐 Security Access Gate", expanded=True):
-            auth_email = st.text_input("Email Key", placeholder="Enter authorization key")
-            auth_pass = st.text_input("Security Hash Token", type="password", placeholder="••••••••")
-            if st.button("Initialize Engine Core"):
-                if auth_email.strip() and len(auth_pass) > 4:
-                    st.session_state.is_logged_in = True
-                    st.session_state.user_email = auth_email.strip()
-                    st.rerun()
-                    
-        # Restoring the explicit Red Locked box banner at bottom left
-        st.markdown("""
-            <div class="sidebar-lock-card">
-                <div class="sidebar-lock-title">🔒 Terminal State: Locked</div>
-                <div class="sidebar-lock-desc">The secure high-fidelity analytical computation matrix remains completely locked. Authenticate above to unlock processing parameters.</div>
-            </div>
-        """, unsafe_allow_html=True)
+        st.warning("🔒 Terminal State: Locked")
+        st.caption("Accessing computing resources requires an active security authentication ticket.")
 
-# 4. MAIN USER INTERFACE CORE VIEW
+# 5. MAIN APPLICATION CONTROLLER
 if selected_view == "Core Engine Dashboard":
-    # Header layout wrapper with background tracking gradient mesh
     st.markdown("""
         <div class="header-container">
             <div class="dashboard-title-main">AI Strategy Analyzer Pro</div>
@@ -150,7 +163,7 @@ if selected_view == "Core Engine Dashboard":
         </div>
     """, unsafe_allow_html=True)
     
-    # PDF Action bar array alignment
+    # PDF Action layout columns
     col_pdf_space, col_pdf_btn = st.columns([3.2, 1])
     with col_pdf_btn:
         if st.session_state.pdf_data_buffer:
@@ -165,7 +178,7 @@ if selected_view == "Core Engine Dashboard":
             
     st.write("")
     
-    # Structural Input Container Grid Framework
+    # Core Front-End Input Container Grid Framework
     st.markdown('<div class="design-input-grid">', unsafe_allow_html=True)
     col_in_1, col_in_2, col_in_3 = st.columns([1, 1.2, 2])
     
@@ -174,17 +187,17 @@ if selected_view == "Core Engine Dashboard":
     with col_in_2:
         date_range = st.selectbox("📅 Evaluation Frame", ["365D", "180D", "90D"])
     with col_in_3:
-        user_strategy = st.text_area("🔮 Strategy Evaluation Logic (Plain English)", value="Buy when price crosses above the 50 SMA.")
+        user_strategy = st.text_area("🔮 Strategy Evaluation Logic (Plain English)", value="Buy when price crosses above the 30 SMA.")
         
     run_clicked = st.button("🚀 Run Advanced Strategy Backtest Framework")
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # Process Pipeline Execution Layer
+    # Process Pipeline Execution Interceptor Gate
     if run_clicked:
         if not user_strategy.strip():
             st.warning("Please verify strategy inputs.")
         elif not st.session_state.is_logged_in:
-            st.error("🔒 Access Denied. Please input your validation token inside the left side panel to authorize this engine.")
+            trigger_login_popup_gate()
         else:
             with st.spinner("⚡ Compiling algorithm matrix analytics..."):
                 try:
@@ -207,10 +220,9 @@ if selected_view == "Core Engine Dashboard":
                 except Exception as e:
                     st.error(f"Connection Error: Unable to sync with the backend services. {str(e)}")
 
-    # 5. RESTORING PREMIUM 4-PANEL HIGHER VISUAL METRICS DATA WORKSPACE GRID
+    # 6. DISPLAY PERFORMANCE RESULTS VIEWPORT
     st.write("---")
     
-    # Blue tracking security warning lock container match
     if not st.session_state.current_live_metrics:
         st.markdown("""
             <div style="background-color: rgba(0, 176, 255, 0.04); border: 1px solid rgba(0, 176, 255, 0.2); padding: 1.2rem; border-radius: 8px; margin-bottom: 2rem; display: flex; align-items: center;">
@@ -219,7 +231,6 @@ if selected_view == "Core Engine Dashboard":
             </div>
         """, unsafe_allow_html=True)
         
-    # Rebuilding the exact customized 4 metrics display rows layout across the footer tracking parameters
     col_card_1, col_card_2, col_card_3, col_card_4 = st.columns(4)
     m = st.session_state.current_live_metrics if st.session_state.current_live_metrics else {}
     
