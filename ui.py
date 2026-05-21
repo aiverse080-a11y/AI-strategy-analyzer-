@@ -1,4 +1,3 @@
-import streamlit as pd
 import streamlit as st
 import pandas as pd
 import requests
@@ -134,11 +133,16 @@ if selected_view == "Core Engine Dashboard":
                         st.success("🎯 Backtest completed successfully!")
                         st.rerun()
                     else:
-                        st.error(f"Backend Error: Received status code {response.status_code}")
+                        try:
+                            # Direct payload structural debugging tracer
+                            error_details = response.json()
+                            st.error(f"❌ Backend Error 422 Structure Fault: {error_details}")
+                        except:
+                            st.error(f"Backend Error: Received status code {response.status_code}")
                 except Exception as e:
                     st.error(f"Connection Error: Unable to reach the calculation engine. {str(e)}")
 
-    # Display Metrics Workspace
+# Display Metrics Workspace
     st.write("---")
     if st.session_state.current_live_metrics:
         m = st.session_state.current_live_metrics
@@ -161,7 +165,6 @@ elif selected_view == "Strategy Leaderboard":
         else:
             st.error("Database connection fault.")
     except Exception as e:
-        # Fallback view if backend database connection fails
         fallback_lead = [{"Rank": "1", "Ticker": "NVDA", "Strategy Pattern": "Dual EMA Momentum Cross", "Win Rate (%)": "68.4%"}]
         st.dataframe(pd.DataFrame(fallback_lead), use_container_width=True)
 
