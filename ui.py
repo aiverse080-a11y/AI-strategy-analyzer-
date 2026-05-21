@@ -123,7 +123,7 @@ if selected_view == "Core Engine Dashboard":
                         json={
                             "ticker": target_ticker,
                             "frame": date_range,
-                            "strategy": user_strategy
+                            "user_strategy": user_strategy
                         }
                     )
                     if response.status_code == 200:
@@ -134,7 +134,6 @@ if selected_view == "Core Engine Dashboard":
                         st.rerun()
                     else:
                         try:
-                            # Direct payload structural debugging tracer
                             error_details = response.json()
                             st.error(f"❌ Backend Error 422 Structure Fault: {error_details}")
                         except:
@@ -142,7 +141,7 @@ if selected_view == "Core Engine Dashboard":
                 except Exception as e:
                     st.error(f"Connection Error: Unable to reach the calculation engine. {str(e)}")
 
-# Display Metrics Workspace
+    # Display Metrics Workspace
     st.write("---")
     if st.session_state.current_live_metrics:
         m = st.session_state.current_live_metrics
@@ -151,7 +150,7 @@ if selected_view == "Core Engine Dashboard":
         col_m2.metric("TOTAL PROFIT FACTOR", f"{m.get('profit_factor', '1.85')}x")
         col_m3.metric("MAX DRAWDOWN", f"-{m.get('max_drawdown', '12.4')}%")
     else:
-        st.info("The quantitative analytics metrics engine is currently locked. Log in and click the execution button above to unlock your secure session workspace.")
+        st.info("The quantitative analytics metrics engine is currently loaded. Log in and click the execution button above to unlock your secure session workspace.")
 
 elif selected_view == "Strategy Leaderboard":
     st.markdown('<div class="dashboard-title-main">Top Strategy Leaderboard</div>', unsafe_allow_html=True)
