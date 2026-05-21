@@ -69,8 +69,6 @@ st.markdown("""
     .popup-welcome-txt { font-size: 1.5rem; font-weight: 700; color: #ffffff; margin-bottom: 0.2rem; }
     .popup-sub-txt { font-size: 0.85rem; color: #6b7c96; margin-bottom: 0.4rem; }
     .popup-brand-powered { font-size: 0.75rem; font-weight: 700; color: #38ef7d; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 1rem; }
-    .popup-login-header a { color: #00b0ff !important; text-decoration: none; font-weight: 600; }
-    .popup-login-header a:hover { text-decoration: underline; }
     
     div[data-testid="stTextInput"] input { background-color: #0b132b !important; border: 1px solid #1c2541 !important; color: #ffffff !important; border-radius: 6px !important; }
     .dev-attribution { font-size: 0.85rem; color: #415a77; text-align: center; margin-top: 4rem; padding-bottom: 2rem; }
@@ -111,7 +109,15 @@ def trigger_login_popup_gate():
         auth_pass = st.text_input("Password", type="password", placeholder="••••••••")
         
         st.write("")
-        terms_accepted = st.checkbox("I accept the platform Privacy Policy and institutional Terms & Conditions constraints.")
+        # Fixed: Uncoupled clean label without broken markdown syntax
+        terms_accepted = st.checkbox("I verify configuration rules and accept the platform policies.")
+        
+        # HTML Inject: Responsive, fully hyperlinked legal cross-routes right beneath the check trigger
+        st.markdown("""
+            <div style="font-size: 0.85rem; color: #6b7c96; margin-top: -0.5rem; margin-bottom: 1rem; text-align: left;">
+                Read definitions: <a href="https://veltrixcode-ai.streamlit.app/Privacy_Policy" target="_blank" style="color: #00b0ff; text-decoration: none; font-weight: 600;">Privacy Policy</a> | <a href="https://veltrixcode-ai.streamlit.app/Terms_And_Conditions" target="_blank" style="color: #00b0ff; text-decoration: none; font-weight: 600;">Terms & Conditions</a>
+            </div>
+        """, unsafe_allow_html=True)
         
         st.write("")
         if st.button("Sign In →", key="modal_submit_btn"):
