@@ -11,15 +11,16 @@ st.set_page_config(
     page_title="AI Strategy Analyzer Pro",
     page_icon="🔮",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"  # Force sidebar to completely hide on load
 )
 
-# Premium Global Stylesheet (Deep Institutional Dark Theme)
+# Premium Global Stylesheet (Hides sidebar toggle button and centers everything perfectly)
 st.markdown("""
     <style>
-    /* Main Layout Overrides */
+    /* Main Layout Overrides & Sidebar Complete Removal */
     .main { background-color: #060913; color: #c9d1d9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    div[data-testid="stSidebarUserContent"] { background-color: #0a0f24; padding-top: 1rem; }
+    [data-testid="stSidebar"] { display: none !important; }
+    [data-testid="stSidebarCollapseButton"] { display: none !important; }
     
     /* Premium Header Wave Mesh */
     .header-container { 
@@ -72,7 +73,10 @@ st.markdown("""
     .popup-sub-txt { font-size: 0.85rem; color: #6b7c96; margin-bottom: 0.4rem; }
     .popup-brand-powered { font-size: 0.75rem; font-weight: 700; color: #38ef7d; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 1rem; }
     
-    /* Clean text boxes spacing framework adjustment */
+    /* Styling for the hyperlink anchors inside terms */
+    .popup-login-header a { color: #00b0ff !important; text-decoration: none; font-weight: 600; }
+    .popup-login-header a:hover { text-decoration: underline; }
+    
     div[data-testid="stTextInput"] input {
         background-color: #0b132b !important;
         border: 1px solid #1c2541 !important;
@@ -96,7 +100,7 @@ def compile_pdf_document(data):
         return pdf_string.encode("latin-1")
     return bytes(pdf_string)
 
-# 2. PERSISTENT STATE TRACKING (Fixes refresh re-login bug)
+# 2. PERSISTENT STATE TRACKING
 if "is_logged_in" not in st.session_state:
     st.session_state.is_logged_in = False
 if "user_email" not in st.session_state:
@@ -124,9 +128,9 @@ def trigger_login_popup_gate():
         auth_email = st.text_input("Email Address", placeholder="name@company.com")
         auth_pass = st.text_input("Password", type="password", placeholder="••••••••")
         
-        # ⚖️ LEGAL COMPLIANCE acceptance checkbox implementation
         st.write("")
-        terms_accepted = st.checkbox("I accept the platform Privacy Policy and institutional Terms & Conditions constraints.")
+        # ⚖️ LEGAL COMPLIANCE: Clickable links rendered directly next to the selection checkbox field
+        terms_accepted = st.checkbox("I accept the platform [Privacy Policy](https://veltrixcode-ai.streamlit.app/Privacy_Policy) and institutional [Terms & Conditions](https://veltrixcode-ai.streamlit.app/Terms_And_Conditions) constraints.")
         
         st.write("")
         if st.button("Sign In →", key="modal_submit_btn"):
@@ -150,27 +154,7 @@ def trigger_login_popup_gate():
                 st.session_state.user_email = "sso.user@veltrixcode.ai"
                 st.rerun()
 
-# 4. CLEAN INSTAGE SIDEBAR CONSOLE OVERHAUL
-with st.sidebar:
-    st.markdown("### VELTRIXCODE QUANT")
-    st.caption("Institutional Processing Workspace v3.1.4")
-    st.write("---")
-    
-    st.markdown("🌐 **ENGINE RUNTIME STATE**")
-    if st.session_state.is_logged_in:
-        st.success(f"🟢 Session Token Verified\n\nUser: {st.session_state.user_email}")
-        if st.button("Disconnect Session"):
-            st.session_state.is_logged_in = False
-            st.session_state.user_email = ""
-            st.session_state.current_live_metrics = None
-            st.session_state.pdf_data_buffer = None
-            st.rerun()
-    else:
-        # Dynamic premium lock notification banner
-        st.error("🔴 Session State: Unverified\n\nTerminal State: Locked")
-        st.caption("Calculation cores are closed. Enter execution choices on the center grid to initialize verification handshake windows.")
-
-# 5. CORE SYSTEM MAIN VIEWPORT GRAPHICS 
+# 4. MAIN DASHBOARD FRAME INTERFACE
 st.markdown("""
     <div class="header-container">
         <div class="dashboard-title-main">AI Strategy Analyzer Pro</div>
@@ -178,7 +162,21 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# PDF Report Generation Interface Array Layout
+# Account session logout row display handler (Now sits elegantly right above the controls layout)
+if st.session_state.is_logged_in:
+    col_user_info, col_logout_act = st.columns([3.5, 1])
+    with col_user_info:
+        st.markdown(f"🟢 **Session Secured:** `{st.session_state.user_email}`")
+    with col_logout_act:
+        if st.button("Disconnect Session 🔓"):
+            st.session_state.is_logged_in = False
+            st.session_state.user_email = ""
+            st.session_state.current_live_metrics = None
+            st.session_state.pdf_data_buffer = None
+            st.rerun()
+    st.write("")
+
+# PDF Export row segment
 col_pdf_space, col_pdf_btn = st.columns([3.2, 1])
 with col_pdf_btn:
     if st.session_state.pdf_data_buffer:
@@ -193,7 +191,7 @@ with col_pdf_btn:
         
 st.write("")
 
-# Form Control Panel Inputs Framework Context
+# Input Field Box Configuration Matrix 
 st.markdown('<div class="design-input-grid">', unsafe_allow_html=True)
 col_in_1, col_in_2, col_in_3 = st.columns([1, 1.2, 2])
 
@@ -207,7 +205,7 @@ with col_in_3:
 run_clicked = st.button("🚀 Run Advanced Strategy Backtest Framework")
 st.markdown('</div>', unsafe_allow_html=True)
 
-# Execution Request Router Gate Logic Block
+# Form Execution Routing
 if run_clicked:
     if not user_strategy.strip():
         st.warning("Please verify strategy inputs.")
@@ -235,7 +233,7 @@ if run_clicked:
             except Exception as e:
                 st.error(f"Connection Error: Unable to sync with backend services. {str(e)}")
 
-# 6. METRICS TELEMETRY TRACKING CARDS REGION
+# 5. DATA CARD METRICS WORKSPACE
 st.write("---")
 
 if not st.session_state.current_live_metrics:
