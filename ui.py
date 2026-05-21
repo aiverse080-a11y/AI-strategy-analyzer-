@@ -14,27 +14,25 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Institutional Dark Theme CSS
+# Custom Institutional Dark Theme CSS (Restoring full grid design alignment)
 st.markdown("""
     <style>
     .main { background-color: #0d1117; color: #c9d1d9; }
     .stButton>button { background-color: #007acc; color: white; border-radius: 4px; width: 100%; }
     .dashboard-title-main { font-size: 2.5rem; font-weight: 700; color: #ffffff; margin-bottom: 0.5rem; }
     .dashboard-subtitle { font-size: 1.1rem; color: #8b949e; margin-bottom: 2rem; }
-    .design-input-grid { background-color: #161b22; padding: 1.5rem; border-radius: 8px; border: 1px solid #30363d; }
+    .design-input-grid { background-color: #161b22; padding: 1.5rem; border-radius: 8px; border: 1px solid #30363d; margin-bottom: 2rem; }
     .dev-attribution { font-size: 0.85rem; color: #58a6ff; text-align: center; margin-top: 3rem; }
     </style>
 """, unsafe_allow_html=True)
 
-# Helper function to generate fallback mock PDF report buffer safely
+# Helper function to generate PDF report buffer safely
 def compile_pdf_document(data):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", size=12)
     pdf.cell(200, 10, txt="VELTRIXCODE AI - Executive Strategy Report", ln=1, align="C")
     pdf.cell(200, 10, txt=f"Win Rate: {data.get('win_rate', 'N/A')}", ln=2)
-    
-    # Return string output converted directly into bytes to avoid encoding errors
     pdf_string = pdf.output(dest="S")
     if isinstance(pdf_string, str):
         return pdf_string.encode("latin-1")
@@ -50,7 +48,7 @@ if "current_live_metrics" not in st.session_state:
 if "pdf_data_buffer" not in st.session_state:
     st.session_state.pdf_data_buffer = None
 
-# 3. SIDEBAR AUTHENTICATION PANEL
+# 3. SIDEBAR NAVIGATION & AUTH
 with st.sidebar:
     st.markdown("## VELTRIXCODE AI")
     st.caption("Institutional Version 3.1.4")
@@ -111,7 +109,7 @@ if selected_view == "Core Engine Dashboard":
     with col_in_2:
         date_range = st.selectbox("📅 Evaluation Frame", ["365D", "180D", "90D"])
     with col_in_3:
-        user_strategy = st.text_area("🔮 Strategy Evaluation Logic (Plain English)", value="Buy when price crosses above the 50 SMA.")
+        user_strategy = st.text_area("🔮 Strategy Evaluation Logic (Plain English)", value="Buy when price crosses above the 30 SMA.")
         
     run_clicked = st.button("🚀 Run Advanced Strategy Backtest Framework")
     st.markdown('</div>', unsafe_allow_html=True)
@@ -121,7 +119,7 @@ if selected_view == "Core Engine Dashboard":
         if not user_strategy.strip():
             st.warning("Please verify strategy inputs.")
         elif not st.session_state.is_logged_in:
-            st.error("🔒 Access Denied. Please log in from the authentication panel in the sidebar first.")
+            st.error("🔒 Access Denied. Please log in from the sidebar authentication panel first.")
         else:
             with st.spinner("⚡ Compiling algorithm matrix..."):
                 try:
@@ -146,16 +144,29 @@ if selected_view == "Core Engine Dashboard":
                         except:
                             st.error(f"Backend Error: Received status code {response.status_code}")
                 except Exception as e:
-                    st.error(f"Connection Error: Unable to reach the calculation engine. {str(e)}")
+                    st.error(f"Connection Error: Unable to reach calculation engine. {str(e)}")
 
-    # Display Metrics Workspace
+    # 5. RESTORED 6-COLUMN METRICS MATRIX WORKSPACE
     st.write("---")
     if st.session_state.current_live_metrics:
         m = st.session_state.current_live_metrics
-        col_m1, col_m2, col_m3 = st.columns(3)
-        col_m1.metric("WIN RATE", f"{m.get('win_rate', '54.2')}%")
-        col_m2.metric("TOTAL PROFIT FACTOR", f"{m.get('profit_factor', '2.38')}x")
-        col_m3.metric("MAX DRAWDOWN", f"-{m.get('max_drawdown', '16.4')}%")
+        
+        # Creating exactly 6 clean tracking data columns across the screen layout
+        col_m1, col_m2, col_m3, col_m4, col_m5, col_m6 = st.columns(6)
+        
+        # Checking string values to strip formatting duplication instantly
+        raw_win = str(m.get('win_rate', '54.2'))
+        win_rate_val = raw_win if "%" in raw_win else f"{raw_win}%"
+        
+        raw_dd = str(m.get('max_drawdown', '-8.4'))
+        drawdown_val = raw_dd if "%" in raw_dd else f"{raw_dd}%"
+        
+        col_m1.metric("WIN RATE", win_rate_val)
+        col_m2.metric("Net Profit", f"${m.get('net_profit', '1,420')}")
+        col_m3.metric("Total Trades", f"{m.get('total_trades', '24')}")
+        col_m4.metric("Profit Factor", f"{m.get('profit_factor', '1.64')}x")
+        col_m5.metric("Max Drawdown", drawdown_val)
+        col_m6.metric("Risk Reward", f"{m.get('risk_reward', '1:2.4')}")
     else:
         st.info("The quantitative analytics metrics engine is currently loaded. Log in and click the execution button above to unlock your secure session workspace.")
 
