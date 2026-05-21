@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Premium Global Stylesheet
+# Premium Global Stylesheet (Restoring dense, elegant text-boxes and glowing layout parameters)
 st.markdown("""
     <style>
     /* Main Layout Framework */
@@ -65,12 +65,25 @@ st.markdown("""
     .metric-card-value { font-size: 1.8rem; font-weight: 700; color: #00e676; margin-bottom: 0.2rem; }
     .metric-card-value.blue-text { color: #00b0ff; }
     
-    /* Premium Interactive Modal Form Elements */
-    .popup-login-header { text-align: center; margin-bottom: 1.5rem; }
-    .popup-logo-glow { font-size: 3.5rem; color: #00b0ff; text-shadow: 0 0 15px rgba(0,176,255,0.6); margin-bottom: 0.5rem; }
-    .popup-welcome-txt { font-size: 1.6rem; font-weight: 700; color: #ffffff; }
-    .popup-sub-txt { font-size: 0.9rem; color: #6b7c96; margin-bottom: 0.5rem; }
-    .popup-brand-powered { font-size: 0.8rem; font-weight: 600; color: #00b0ff; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 1rem; }
+    /* Core Institutional Login Modal Layout Restructuring */
+    div[data-testid="stDialog"] {
+        background-color: #060913 !important;
+        border: 1px solid #16224f !important;
+        border-radius: 16px !important;
+    }
+    .popup-login-header { text-align: center; margin-bottom: 1.2rem; }
+    .popup-logo-glow { font-size: 2.5rem; color: #00b0ff; text-shadow: 0 0 15px rgba(0,176,255,0.6); margin-bottom: 0.2rem; font-weight: bold; }
+    .popup-welcome-txt { font-size: 1.5rem; font-weight: 700; color: #ffffff; margin-bottom: 0.2rem; }
+    .popup-sub-txt { font-size: 0.85rem; color: #6b7c96; margin-bottom: 0.4rem; }
+    .popup-brand-powered { font-size: 0.75rem; font-weight: 700; color: #38ef7d; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 1rem; }
+    
+    /* Tightening the text inputs formatting styles */
+    div[data-testid="stTextInput"] input {
+        background-color: #0b132b !important;
+        border: 1px solid #1c2541 !important;
+        color: #ffffff !important;
+        border-radius: 6px !important;
+    }
     
     .dev-attribution { font-size: 0.85rem; color: #415a77; text-align: center; margin-top: 4rem; padding-bottom: 2rem; }
     </style>
@@ -98,38 +111,41 @@ if "current_live_metrics" not in st.session_state:
 if "pdf_data_buffer" not in st.session_state:
     st.session_state.pdf_data_buffer = None
 
-# 3. HIGH-FIDELITY MODAL OVERLAY TRIGGER
+# 3. COMPACT MODAL OVERLAY TRIGGER (Grid constraints added to fix the stretched design)
 @st.dialog("🔒 Secure Engine Gate", width="large")
 def trigger_login_popup_gate():
-    st.markdown("""
-        <div class="popup-login-header">
-            <div class="popup-logo-glow">▲</div>
-            <div class="popup-welcome-txt">Welcome Back</div>
-            <div class="popup-sub-txt">Login to access your dashboard</div>
-            <div class="popup-brand-powered">⚡ POWERED BY VELTRIXCODE AI</div>
-        </div>
-    """, unsafe_allow_html=True)
+    # Force a centered 3-column split grid layout inside the dialog context box
+    col_side_l, col_center_form, col_side_r = st.columns([1, 2, 1])
     
-    auth_email = st.text_input("Email Address", placeholder="Enter your email")
-    auth_pass = st.text_input("Password", type="password", placeholder="Enter your password")
-    
-    st.write("")
-    if st.button("Sign In →", key="modal_submit_btn"):
-        if auth_email.strip() and len(auth_pass) > 4:
+    with col_center_form:
+        st.markdown("""
+            <div class="popup-login-header">
+                <div class="popup-logo-glow">▲</div>
+                <div class="popup-welcome-txt">Welcome Back</div>
+                <div class="popup-sub-txt">Login to access your dashboard</div>
+                <div class="popup-brand-powered">⚡ POWERED BY VELTRIXCODE AI</div>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        auth_email = st.text_input("Email Address", placeholder="name@company.com")
+        auth_pass = st.text_input("Password", type="password", placeholder="••••••••")
+        
+        st.write("")
+        if st.button("Sign In →", key="modal_submit_btn"):
+            if auth_email.strip() and len(auth_pass) > 4:
+                st.session_state.is_logged_in = True
+                st.session_state.user_email = auth_email.strip()
+                st.success("Access Granted!")
+                st.rerun()
+            else:
+                st.error("Invalid access credentials token.")
+                
+        st.markdown('<div style="text-align:center; color:#5f759e; margin: 0.3rem 0; font-size:0.8rem;">OR</div>', unsafe_allow_html=True)
+        
+        if st.button("🔴 Continue with Google", key="google_oauth_bypass"):
             st.session_state.is_logged_in = True
-            st.session_state.user_email = auth_email.strip()
-            st.success("Authentication validated successfully!")
+            st.session_state.user_email = "google.user@veltrixcode.ai"
             st.rerun()
-        else:
-            st.error("Invalid secure access credentials token.")
-            
-    st.markdown('<div style="text-align:center; color:#5f759e; margin: 0.5rem 0;">OR</div>', unsafe_allow_html=True)
-    
-    if st.button("🔴 Continue with Google", key="google_oauth_bypass"):
-        st.session_state.is_logged_in = True
-        st.session_state.user_email = "google.user@veltrixcode.ai"
-        st.success("OAuth verification handshake completed!")
-        st.rerun()
 
 # 4. SIDEBAR STATUS MONITOR PANEL
 with st.sidebar:
@@ -163,7 +179,6 @@ if selected_view == "Core Engine Dashboard":
         </div>
     """, unsafe_allow_html=True)
     
-    # PDF Action layout columns
     col_pdf_space, col_pdf_btn = st.columns([3.2, 1])
     with col_pdf_btn:
         if st.session_state.pdf_data_buffer:
@@ -178,7 +193,6 @@ if selected_view == "Core Engine Dashboard":
             
     st.write("")
     
-    # Core Front-End Input Container Grid Framework
     st.markdown('<div class="design-input-grid">', unsafe_allow_html=True)
     col_in_1, col_in_2, col_in_3 = st.columns([1, 1.2, 2])
     
@@ -192,7 +206,6 @@ if selected_view == "Core Engine Dashboard":
     run_clicked = st.button("🚀 Run Advanced Strategy Backtest Framework")
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # Process Pipeline Execution Interceptor Gate
     if run_clicked:
         if not user_strategy.strip():
             st.warning("Please verify strategy inputs.")
