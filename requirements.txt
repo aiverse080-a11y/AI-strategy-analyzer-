@@ -1,4 +1,6 @@
-gradio
-requests
+fastapi
+uvicorn
+pydantic
+yfinance
 pandas
-fpdf
+numpy
