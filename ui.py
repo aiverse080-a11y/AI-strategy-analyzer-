@@ -26,14 +26,19 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Helper function to generate fallback mock PDF report buffer
+# Helper function to generate fallback mock PDF report buffer safely
 def compile_pdf_document(data):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", size=12)
     pdf.cell(200, 10, txt="VELTRIXCODE AI - Executive Strategy Report", ln=1, align="C")
     pdf.cell(200, 10, txt=f"Win Rate: {data.get('win_rate', 'N/A')}", ln=2)
-    return pdf.output(dest="S").encode("latin-1")
+    
+    # Return string output converted directly into bytes to avoid encoding errors
+    pdf_string = pdf.output(dest="S")
+    if isinstance(pdf_string, str):
+        return pdf_string.encode("latin-1")
+    return bytes(pdf_string)
 
 # 2. SESSION STATE INITIALIZATION
 if "is_logged_in" not in st.session_state:
@@ -60,6 +65,8 @@ with st.sidebar:
         if st.button("Log Out"):
             st.session_state.is_logged_in = False
             st.session_state.user_email = ""
+            st.session_state.current_live_metrics = None
+            st.session_state.pdf_data_buffer = None
             st.rerun()
     else:
         st.warning("🔒 Engine Locked")
@@ -104,7 +111,7 @@ if selected_view == "Core Engine Dashboard":
     with col_in_2:
         date_range = st.selectbox("📅 Evaluation Frame", ["365D", "180D", "90D"])
     with col_in_3:
-        user_strategy = st.text_area("🔮 Strategy Evaluation Logic (Plain English)", value="Buy when price crosses above the 30 SMA.")
+        user_strategy = st.text_area("🔮 Strategy Evaluation Logic (Plain English)", value="Buy when price crosses above the 50 SMA.")
         
     run_clicked = st.button("🚀 Run Advanced Strategy Backtest Framework")
     st.markdown('</div>', unsafe_allow_html=True)
@@ -147,8 +154,8 @@ if selected_view == "Core Engine Dashboard":
         m = st.session_state.current_live_metrics
         col_m1, col_m2, col_m3 = st.columns(3)
         col_m1.metric("WIN RATE", f"{m.get('win_rate', '54.2')}%")
-        col_m2.metric("TOTAL PROFIT FACTOR", f"{m.get('profit_factor', '1.85')}x")
-        col_m3.metric("MAX DRAWDOWN", f"-{m.get('max_drawdown', '12.4')}%")
+        col_m2.metric("TOTAL PROFIT FACTOR", f"{m.get('profit_factor', '2.38')}x")
+        col_m3.metric("MAX DRAWDOWN", f"-{m.get('max_drawdown', '16.4')}%")
     else:
         st.info("The quantitative analytics metrics engine is currently loaded. Log in and click the execution button above to unlock your secure session workspace.")
 
